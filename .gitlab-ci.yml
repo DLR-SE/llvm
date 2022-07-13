@@ -21,9 +21,9 @@ variables:
   # access rights if run as root
   S4E_BUILD_TEST_USER: "s4e-builder"
   #Specify PATH on Host and Container for mounting volumes
-  S4E_SRC_VOLUME: "/var/lib/docker/volumes/s4e_src/_data"
-  S4E_BUILD_VOLUME: "/var/lib/docker/volumes/s4e_build/_data"
-  S4E_INSTALL_VOLUME: "/var/lib/docker/volumes/s4e_install/_data"
+  S4E_SRC_VOLUME: "/var/lib/docker/volumes/s4e_src/_data/$CI_COMMIT_BRANCH"
+  S4E_BUILD_VOLUME: "/var/lib/docker/volumes/s4e_build/_data/$CI_COMMIT_BRANCH"
+  S4E_INSTALL_VOLUME: "/var/lib/docker/volumes/s4e_install/_data/$CI_COMMIT_BRANCH"
   S4E_GCC_INSTALL_VOLUME: "/install"
   S4E_SRC_DIR: "/home/$S4E_BUILD_TEST_USER/src"
   S4E_BUILD_DIR: "/home/$S4E_BUILD_TEST_USER/build"
