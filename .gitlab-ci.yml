@@ -1,0 +1,72 @@
+image: docker
+
+variables:
+  # When you use the dind service, you must instruct Docker to talk with
+  # the daemon started inside of the service. The daemon is available
+  # with a network connection instead of the default
+  # /var/run/docker.sock socket. Docker 19.03 does this automatically
+  # by setting the DOCKER_HOST in
+  # https://github.com/docker-library/docker/blob/d45051476babc297257df490d22cbd806f1b11e4/19.03/docker-entrypoint.sh#L23-L29
+  #
+  # The 'docker' hostname is the alias of the service container as described at
+  # https://docs.gitlab.com/ee/ci/services/#accessing-the-services.
+  #
+  # Specify to Docker where to create the certificates. Docker
+  # creates them automatically on boot, and creates
+  # `/certs/client` to share between the service and job
+  # container, thanks to volume mount from config.toml
+  DOCKER_TLS_CERTDIR: "/certs"
+  
+  #Specify Name of User for Building and Testing Code. Tests must not be run as root as some test fail due to 
+  # access rights if run as root
+  S4E_BUILD_TEST_USER: "s4e-builder"
+  #Specify PATH on Host and Container for mounting volumes
+  S4E_SRC_VOLUME: "/var/lib/docker/volumes/s4e_src/_data"
+  S4E_BUILD_VOLUME: "/var/lib/docker/volumes/s4e_build/_data"
+  S4E_INSTALL_VOLUME: "/var/lib/docker/volumes/s4e_install/_data"
+  S4E_GCC_INSTALL_VOLUME: "/install"
+  S4E_SRC_DIR: "/home/$S4E_BUILD_TEST_USER/src"
+  S4E_BUILD_DIR: "/home/$S4E_BUILD_TEST_USER/build"
+  S4E_INSTALL_DIR: "/home/$S4E_BUILD_TEST_USER/install"
+  S4E_DOCKER_IMAGE: "localhost:5000/s4e-builder"
+  S4E_BUILDER_UID_GID: "2001" #this value can be any value to be used for adding a new user. Same id will be used for the group
+  GITLAB_RUNNER_HOST_DNS: $GITLAB_RUNNER_HOST_DNS
+
+stages:
+  - update
+  - build
+  - test
+  - deploy
+
+services:
+ - docker:19.03.12-dind
+
+#before_script: 
+  #- docker info
+
+update:
+  stage: update
+  script:
+    - docker run --rm -t --dns $GITLAB_RUNNER_HOST_DNS -v $S4E_SRC_VOLUME:$S4E_SRC_DIR -v $S4E_BUILD_VOLUME:$S4E_BUILD_DIR -v $S4E_INSTALL_VOLUME:$S4E_INSTALL_DIR -v $S4E_GCC_INSTALL_VOLUME:$S4E_GCC_INSTALL_VOLUME $S4E_DOCKER_IMAGE $S4E_BUILD_TEST_USER $S4E_BUILDER_UID_GID update
+  tags:
+    - docker-riscv
+
+build:
+  stage: build
+  script:
+    - docker run --rm -t --dns $GITLAB_RUNNER_HOST_DNS -v $S4E_SRC_VOLUME:$S4E_SRC_DIR -v $S4E_BUILD_VOLUME:$S4E_BUILD_DIR -v $S4E_INSTALL_VOLUME:$S4E_INSTALL_DIR -v $S4E_GCC_INSTALL_VOLUME:$S4E_GCC_INSTALL_VOLUME $S4E_DOCKER_IMAGE $S4E_BUILD_TEST_USER $S4E_BUILDER_UID_GID build
+  tags:
+    - docker-riscv
+  dependencies:
+     - update
+ 
+test:
+  stage: test
+  script:
+    - docker run --rm -t --dns $GITLAB_RUNNER_HOST_DNS -v $S4E_SRC_VOLUME:$S4E_SRC_DIR -v $S4E_BUILD_VOLUME:$S4E_BUILD_DIR -v $S4E_INSTALL_VOLUME:$S4E_INSTALL_DIR -v $S4E_GCC_INSTALL_VOLUME:$S4E_GCC_INSTALL_VOLUME $S4E_DOCKER_IMAGE $S4E_BUILD_TEST_USER $S4E_BUILDER_UID_GID check
+  allow_failure: true
+  tags:
+    - docker-riscv
+  dependencies:
+    - build
+
