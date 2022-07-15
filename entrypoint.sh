@@ -66,7 +66,7 @@ case $1 in
 
     cd $EXTENSIBLE_COMPILER_BUILD_DIR && cmake\
 	  -DCMAKE_BUILD_TYPE=Debug\
-          -DLLVM_TARGETS_TO_BUILD='X86;RISCV'\
+          -DLLVM_TARGETS_TO_BUILD='RISCV'\
           -DLLVM_ENABLE_PROJECTS='clang;lld'\
           -DCMAKE_C_COMPILER=clang\
           -DCMAKE_CXX_COMPILER=clang++\
