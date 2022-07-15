@@ -3,8 +3,8 @@
 commandline="$0 $*"
 echo "Commandline + :" $commandline
 
-if [ "$#" -lt 3 ]; then
-  echo "Usage: s4e-builder USER UID_GID update|build|check" >&2
+if [ "$#" -lt 4 ]; then
+  echo "Usage: s4e-builder USER UID_GID CI_COMMIT_BRANCH update|build|check" >&2
   exit 1
 fi
 
@@ -13,6 +13,8 @@ set -e
 userName=$1
 shift
 uid_gid=$1
+shift
+ci_commit_branch=$1
 shift
 
 if [ `id -u` -eq 0 ]; then
@@ -46,9 +48,16 @@ export EXTENSIBLE_COMPILER_INSTALL_DIR=$INSTALL_DIR/extensible-compiler
 case $1 in
   update)
   if [ -d "$EXTENSIBLE_COMPILER_SRC_DIR/.git" ]; then
-      cd $EXTENSIBLE_COMPILER_SRC_DIR && git pull
+      cd $EXTENSIBLE_COMPILER_SRC_DIR
+
+      #check if it is the same branch before pulling
+      if [[ $(git rev-parse --abbrev-ref HEAD) == "$ci_commit_branch" ]] then
+         git pull
+      else
+          cd $SOURCE_DIR && git clone --single-branch --branch $ci_commit_branch https://oauth2:7Fko6xFGU_Ehe59o63vH@gitlab.dlr.de/scale4edge/extensible-compiler.git
+      fi
   else
-      cd $SOURCE_DIR && git clone --single-branch --branch bosch_mac_isax https://oauth2:7Fko6xFGU_Ehe59o63vH@gitlab.dlr.de/scale4edge/extensible-compiler.git
+      cd $SOURCE_DIR && git clone --single-branch --branch $ci_commit_branch https://oauth2:7Fko6xFGU_Ehe59o63vH@gitlab.dlr.de/scale4edge/extensible-compiler.git
     fi
 ;;
   build)
@@ -116,7 +125,7 @@ case $1 in
     cd $EXTENSIBLE_COMPILER_BUILD_DIR && make check-all
     ;;
   *)
-    echo "Usage: s4e-builder USER UID_GID update|build|check" >&2
+    echo "Usage: s4e-builder USER UID_GID CI_COMMIT_BRANCH update|build|check" >&2
     exit 1
   ;;
 esac
