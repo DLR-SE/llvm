@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 commandline="$0 $*"
 echo "Commandline + :" $commandline
@@ -51,7 +51,7 @@ case $1 in
       cd $EXTENSIBLE_COMPILER_SRC_DIR
 
       #check if it is the same branch before pulling
-      if [[ "$(git rev-parse --abbrev-ref HEAD)" == "$ci_commit_branch" ]]; then
+      if [ "$(git rev-parse --abbrev-ref HEAD)" == "$ci_commit_branch" ]; then
          git pull
       else
           cd $SOURCE_DIR && git clone --single-branch --branch $ci_commit_branch https://oauth2:7Fko6xFGU_Ehe59o63vH@gitlab.dlr.de/scale4edge/extensible-compiler.git
