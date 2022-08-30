@@ -68,7 +68,7 @@ test:
   rules: #Only run test jobs for scheduled pipelines. Pipelines will be scheduled to run once on nightly builds
     - if: $CI_PIPELINE_SOURCE != "schedule"
       when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   script:
     - docker run --rm -t --dns $GITLAB_RUNNER_HOST_DNS -v $S4E_SRC_VOLUME:$S4E_SRC_DIR -v $S4E_BUILD_VOLUME:$S4E_BUILD_DIR -v $S4E_INSTALL_VOLUME:$S4E_INSTALL_DIR -v $S4E_GCC_INSTALL_VOLUME:$S4E_GCC_INSTALL_VOLUME $S4E_DOCKER_IMAGE $S4E_BUILD_TEST_USER $S4E_BUILDER_UID_GID $CI_COMMIT_BRANCH check
   allow_failure: true
