@@ -76,3 +76,13 @@ test:
     - docker-riscv
   dependencies:
     - build
+
+deploy_staging:
+  stage: deploy
+  script:
+    - echo "Deploy to staging server"
+  environment:
+    name: staging
+    url: https://teamsites-extranet.dlr.de/sites/SE/Dokumente/DLRSE/04-Projects/03-Drittmittelprojekte_(3er_Kostentr%C3%A4ger)/Scale4Edge/5-Work/CICD_staging_test
+  dependencies:
+    - test
