@@ -17,6 +17,7 @@ variables:
   # container, thanks to volume mount from config.toml
   DOCKER_TLS_CERTDIR: "/certs"
   
+
   #Specify Name of User for Building and Testing Code. Tests must not be run as root as some test fail due to 
   # access rights if run as root
   S4E_BUILD_TEST_USER: "s4e-builder"
