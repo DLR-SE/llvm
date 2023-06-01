@@ -1864,3 +1864,6 @@ include "RISCVInstrInfoZicbo.td"
 
 include "RISCVInstrInfoXVentana.td"
 include "RISCVInstrInfoXTHead.td"
+
+// RISCVInstrInfo.td - INSERTION_START
+// RISCVInstrInfo.td - INSERTION_END

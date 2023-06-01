@@ -104,6 +104,9 @@ static const RISCVSupportedExtension SupportedExtensions[] = {
     {"zicboz", RISCVExtensionVersion{1, 0}},
     {"zicbop", RISCVExtensionVersion{1, 0}},
 
+// RISCVISAInfo.cpp - INSERTION_START
+// RISCVISAInfo.cpp - INSERTION_END
+
     {"svnapot", RISCVExtensionVersion{1, 0}},
     {"svpbmt", RISCVExtensionVersion{1, 0}},
     {"svinval", RISCVExtensionVersion{1, 0}},

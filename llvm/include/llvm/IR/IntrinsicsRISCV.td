@@ -106,6 +106,9 @@ let TargetPrefix = "riscv" in {
   // Zbkx
   def int_riscv_xperm4  : BitManipGPRGPRIntrinsics;
   def int_riscv_xperm8  : BitManipGPRGPRIntrinsics;
+
+// IntrinsicsRISCV.td - INSERTION_START
+// IntrinsicsRISCV.td - INSERTION_END
 } // TargetPrefix = "riscv"
 
 //===----------------------------------------------------------------------===//
