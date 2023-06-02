@@ -1,0 +1,107 @@
+image: docker
+
+variables:
+  # When you use the dind service, you must instruct Docker to talk with
+  # the daemon started inside of the service. The daemon is available
+  # with a network connection instead of the default
+  # /var/run/docker.sock socket. Docker 19.03 does this automatically
+  # by setting the DOCKER_HOST in
+  # https://github.com/docker-library/docker/blob/d45051476babc297257df490d22cbd806f1b11e4/19.03/docker-entrypoint.sh#L23-L29
+  #
+  # The 'docker' hostname is the alias of the service container as described at
+  # https://docs.gitlab.com/ee/ci/services/#accessing-the-services.
+  #
+  # Specify to Docker where to create the certificates. Docker
+  # creates them automatically on boot, and creates
+  # `/certs/client` to share between the service and job
+  # container, thanks to volume mount from config.toml
+  DOCKER_TLS_CERTDIR: "/certs"
+  
+
+  #Specify Name of User for Building and Testing Code. Tests must not be run as root as some test fail due to 
+  # access rights if run as root
+  S4E_BUILD_TEST_USER: "s4e-builder"
+  #Specify PATH on Host and Container for mounting volumes
+  S4E_SRC_VOLUME: "/var/lib/docker/volumes/s4e_src/_data/$CI_COMMIT_BRANCH"
+  S4E_BUILD_VOLUME: "/var/lib/docker/volumes/s4e_build/_data/$CI_COMMIT_BRANCH"
+  S4E_INSTALL_VOLUME: "/var/lib/docker/volumes/s4e_install/_data/$CI_COMMIT_BRANCH"
+  S4E_GCC_INSTALL_VOLUME: "/opt/gcc-riscv"
+  S4E_IMAGE_GCC_PATH: "/opt/gcc-riscv"
+  S4E_SRC_DIR: "/home/$S4E_BUILD_TEST_USER/src"
+  S4E_BUILD_DIR: "/home/$S4E_BUILD_TEST_USER/build"
+  S4E_INSTALL_DIR: "/home/$S4E_BUILD_TEST_USER/install"
+  S4E_DOCKER_IMAGE: "localhost:5000/s4e-llvm-builder"
+  S4E_BUILDER_UID_GID: "2001" #this value can be any value to be used for adding a new user. Same id will be used for the group
+  GITLAB_RUNNER_HOST_DNS: $GITLAB_RUNNER_HOST_DNS
+
+stages:
+  - update
+  - integrate
+  - build
+  - test
+  - deploy
+
+services:
+ - docker:19.03.12-dind
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /-no-build$/ # Never run pipeline if CI_COMMIT_MESSAGE contains -no-build otherwise always
+      when: never
+    - when: always
+
+update:
+  stage: update
+  script:
+    - docker run --rm -t --dns $GITLAB_RUNNER_HOST_DNS -v $S4E_SRC_VOLUME:$S4E_SRC_DIR -v $S4E_BUILD_VOLUME:$S4E_BUILD_DIR -v $S4E_INSTALL_VOLUME:$S4E_INSTALL_DIR -v $S4E_GCC_INSTALL_VOLUME:$S4E_IMAGE_GCC_PATH $S4E_DOCKER_IMAGE $S4E_BUILD_TEST_USER $S4E_BUILDER_UID_GID $CI_COMMIT_BRANCH $CI_S4E_ACCESS_TOKEN_VAR update
+  tags:
+    - docker-riscv
+
+update-tablegen:
+  stage: integrate
+  rules: #Only run job for triggered pipelines
+    - if: ($CI_PIPELINE_SOURCE != "pipeline")
+      when: never
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  script:
+    - docker run --rm -t --dns $GITLAB_RUNNER_HOST_DNS -v $S4E_SRC_VOLUME:$S4E_SRC_DIR -v $S4E_BUILD_VOLUME:$S4E_BUILD_DIR -v $S4E_INSTALL_VOLUME:$S4E_INSTALL_DIR -v $S4E_GCC_INSTALL_VOLUME:$S4E_IMAGE_GCC_PATH $S4E_DOCKER_IMAGE $S4E_BUILD_TEST_USER $S4E_BUILDER_UID_GID $CI_COMMIT_BRANCH $CI_S4E_ACCESS_TOKEN_VAR update-tablegen
+  allow_failure: false
+  tags:
+    - docker-riscv
+  dependencies:
+    - update
+
+  
+build:
+  stage: build
+  script:
+    - docker run --rm -t --dns $GITLAB_RUNNER_HOST_DNS -v $S4E_SRC_VOLUME:$S4E_SRC_DIR -v $S4E_BUILD_VOLUME:$S4E_BUILD_DIR -v $S4E_INSTALL_VOLUME:$S4E_INSTALL_DIR -v $S4E_GCC_INSTALL_VOLUME:$S4E_IMAGE_GCC_PATH $S4E_DOCKER_IMAGE $S4E_BUILD_TEST_USER $S4E_BUILDER_UID_GID $CI_COMMIT_BRANCH $CI_S4E_ACCESS_TOKEN_VAR build
+  tags:
+    - docker-riscv
+  dependencies:
+     - update
+ 
+test:
+  stage: test
+  rules: #Only run test jobs for scheduled or triggered pipelines. Pipelines will be scheduled to run once on nightly builds
+    - if: ($CI_PIPELINE_SOURCE != "schedule" && $CI_PIPELINE_SOURCE != "pipeline")
+      when: never
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  script:
+    - docker run --rm -t --dns $GITLAB_RUNNER_HOST_DNS -v $S4E_SRC_VOLUME:$S4E_SRC_DIR -v $S4E_BUILD_VOLUME:$S4E_BUILD_DIR -v $S4E_INSTALL_VOLUME:$S4E_INSTALL_DIR -v $S4E_GCC_INSTALL_VOLUME:$S4E_IMAGE_GCC_PATH $S4E_DOCKER_IMAGE $S4E_BUILD_TEST_USER $S4E_BUILDER_UID_GID $CI_COMMIT_BRANCH $CI_S4E_ACCESS_TOKEN_VAR check
+  allow_failure: true
+  tags:
+    - docker-riscv
+  dependencies:
+    - build
+
+deploy_staging:
+  stage: deploy
+  script:
+    - echo "Deploy to staging server"
+  environment:
+    name: staging
+    url: https://teamsites-extranet.dlr.de/sites/SE/Dokumente/DLRSE/04-Projects/03-Drittmittelprojekte_(3er_Kostentr%C3%A4ger)/Scale4Edge/5-Work/CICD_staging_test
+  dependencies:
+    - test
+
